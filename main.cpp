@@ -51,15 +51,14 @@ void CalculateBestShiftDemandAndUpdateNaive(int** shifts, int** workerDemands, i
     int maxIndex = 0, maxIndex_night = 0, maxIndex_nonNight = 0;
     for (int k = 0; k <= nK; k++)
     {
+        if (shiftWorkerDemand[k] > shiftWorkerDemand[maxIndex]) {
+            maxIndex = k;
+        }
+
         if(ifnight[k] == 0) // 非晚班
         {
             if (shiftWorkerDemand[k] > shiftWorkerDemand[maxIndex_nonNight])
                 maxIndex_nonNight = k;
-        }
-        else  // 全部班型 
-        {
-            if (shiftWorkerDemand[k] > shiftWorkerDemand[maxIndex])
-                maxIndex = k;
         }
 
     }
@@ -97,7 +96,7 @@ void arrangeWorkSchedule(int** workSchedule, int nI, int nJ, int nK, int L, int 
     int* ifnight = new int[nK+1];           // 夜班=1, 白班=0
     checkShiftIsNight(shifts, ifnight, nK);
     int bestShift[2] = {0};                 // 最佳班型(所有最佳、非晚班最佳)
-    int* shiftWorkerDemand = new int[nK+1]; // 當天每個班型的總需求人數
+    int* shiftWorkerDemand = new int[nK+1]; // 當天每個班型可以實際減少的員工需求
     int* workdays = new int[nI];            // workdays of each worker
     for (int i = 0; i < nI; i++) workdays[i] = 0; 
     
@@ -200,8 +199,10 @@ void arrangeWorkSchedule(int** workSchedule, int nI, int nJ, int nK, int L, int 
             if (j == day && workSchedule[i][j] != 0) {// 該天有上班，但要請假
                 for (int h = 0; h < ZONES; h++) {
                     // 該員工在該時段要上班，請假使得該時段缺工
-                    if(lackPerZone[h] >= 0 && shifts[workSchedule[i][j]][h] == 1)
+                    if(lackPerZone[h] >= 0 && shifts[workSchedule[i][j]][h] == 1) {
                         counts++;
+                        // cout << "work";
+                    }
                 }
                 // 請假後的目標函數較小，則請假
                 if(w1 > counts) {
