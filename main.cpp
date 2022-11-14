@@ -127,24 +127,7 @@ void arrangeWorkSchedule(int** workSchedule, int nI, int nJ, int nK, int L, int 
                 }
                 // if the worker hasn't been assigned the shift
                 if (workSchedule[i][day] == -1) {
-                    // check if the worker has a leave demand on that day
-                    // bool hasLeaveDemand = false;
-                    // for (int r = 0; r < R; r++) {
-                    //     if (leaveDemands[0][r] == i+1 && leaveDemands[1][r] == j+1) { // i員工在第j天要休假
-                    //         hasLeaveDemand = true;
-                    //         break;
-                    //     }
-                    // }
-                    // if (hasLeaveDemand) {
-                    //     workSchedule[i][j] = 0;
-                    // }
-
-                    // else {
-                    //     workSchedule[i][j] = bestShift[0];
-                    //     demand--; 
-                    //     workdays[i]++;
-                    // }
-                    // TA-naiive
+                    // 假設該員工沒有請假需求，則排班
                     int overNightShift = 0;
                     workSchedule[i][day] = bestShift[0]; 
                     
@@ -168,52 +151,65 @@ void arrangeWorkSchedule(int** workSchedule, int nI, int nJ, int nK, int L, int 
                     if (workSchedule[i][day] != 0) {
                         workdays[i]++;
                     }
+
+                    // 排完初步班型再處理請假需求
+                    bool hasLeaveDemand = false;
+                    for (int r = 0; r < R; r++) {               
+                        int workerIdx = leaveDemands[0][r] - 1; // 員工編號
+                        int leaveDay = leaveDemands[1][r] - 1;  // 請假日
+                        if (workerIdx == i && leaveDay == day) {                            
+                            // 缺工數 (當天每個時段)
+                            int lackPerZone[ZONES] = {0};
+                            // 目前每個時段的員工數
+                            int workersPerDay[ZONES] = {0};
+                            for (int worker = 0; worker < i; worker++) {
+                                for (int h = 0; h < ZONES; h++) {
+                                    workersPerDay[h] += shifts[workSchedule[worker][day]][h]; 
+                                }
+                            }
+                            for (int h = 0; h < ZONES; h++) {
+                                lackPerZone[h] = workerDemands[day][h] - workersPerDay[h];
+                            }
+                            
+                            // 該員工不排班的話會缺幾個需求
+                            int counts = 0;
+                            
+                            for (int h = 0; h < ZONES; h++) {
+                                // 該員工在該時段要上班，請假使得該時段缺工
+                                // cout << lackPerZone[h] << ' ' << shifts[workSchedule[workerIdx][leaveDay]][h] << endl;
+                                if(lackPerZone[h] >= 0 && shifts[workSchedule[workerIdx][leaveDay]][h] == 1) {
+                                    counts++;
+                                    // cout << "work";
+                                }
+                            }
+                            // 請假後的目標函數較小，則請假
+                            if(w1 >= counts) {
+                                hasLeaveDemand = true;
+                                workSchedule[workerIdx][leaveDay] = 0;
+                                workdays[workerIdx]--;
+                                // 更新每天每個時段的缺工數
+                                for (int h = 0; h < ZONES; h++) {
+                                    if(shifts[workSchedule[workerIdx][leaveDay]][h] == 1)
+                                        lackPerZone[h]++;
+                                }
+                            }
+                            // 不准假
+                            else{
+                                hasLeaveDemand = false;
+                            }
+                            break;
+                        }
+                    }
+                    if (hasLeaveDemand) continue;
     
-                    for (int k = 0; k <= ZONES; k++) 
+                    for (int k = 0; k <= ZONES; k++) {
                         workerDemands[day][k] -= shifts[workSchedule[i][day]][k];  //該時段的需求-1
+                    }
 
                 }
             }
             else {
                 workSchedule[i][day] = 0;
-            }
-
-        }
-        // TODO: 改為指派員工班表當下就處理請假部分
-        // 班表排完後再處理請假->移到迴圈裏面(當天結束就處理請假)，使得分數從65->63.9
-
-        // 缺工數 (第j天第z個時段)
-        int lackPerZone[ZONES] = {0};
-        // 計算缺工數
-        int workersPerDay[ZONES] = {0};
-        for (int worker = 0; worker < nI; worker++) {
-            for (int h = 0; h < ZONES; h++) 
-                workersPerDay[h] += shifts[workSchedule[worker][day]][h]; 
-        }
-        for (int h = 0; h < ZONES; h++) 
-            lackPerZone[h]= workerDemands[day][h] - workersPerDay[h];
-        
-        for (int r = 0; r < R; r++) {// i員工在第j天要休假
-            int counts = 0;
-            int i = leaveDemands[0][r] - 1, j = leaveDemands[1][r] - 1; // i 員工編號 j 天數
-            if (j == day && workSchedule[i][j] != 0) {// 該天有上班，但要請假
-                for (int h = 0; h < ZONES; h++) {
-                    // 該員工在該時段要上班，請假使得該時段缺工
-                    if(lackPerZone[h] >= 0 && shifts[workSchedule[i][j]][h] == 1) {
-                        counts++;
-                        // cout << "work";
-                    }
-                }
-                // 請假後的目標函數較小，則請假
-                if(w1 > counts) {
-                    workSchedule[i][j] = 0;
-                    workdays[i]--;
-                    // 更新每天每個時段的缺工數
-                    for (int h = 0; h < ZONES; h++) {
-                        if(shifts[workSchedule[i][j]][h] == 1)
-                            lackPerZone[h]++;
-                    }
-                }
             }
         }
         // 印出workdays
