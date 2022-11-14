@@ -51,15 +51,14 @@ void CalculateBestShiftDemandAndUpdateNaive(int** shifts, int** workerDemands, i
     int maxIndex = 0, maxIndex_night = 0, maxIndex_nonNight = 0;
     for (int k = 0; k <= nK; k++)
     {
+        if (shiftWorkerDemand[k] > shiftWorkerDemand[maxIndex]) {
+            maxIndex = k;
+        }
+
         if(ifnight[k] == 0) // 非晚班
         {
             if (shiftWorkerDemand[k] > shiftWorkerDemand[maxIndex_nonNight])
                 maxIndex_nonNight = k;
-        }
-        else  // 全部班型 
-        {
-            if (shiftWorkerDemand[k] > shiftWorkerDemand[maxIndex])
-                maxIndex = k;
         }
 
     }
